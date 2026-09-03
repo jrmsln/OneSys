@@ -1,0 +1,19 @@
+{
+  "name": "Onesys Music Team Workspace",
+  "short_name": "Onesys",
+  "description": "Plan services, coordinate the team, and prepare the setlist.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f8f5",
+  "theme_color": "#173b32",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
