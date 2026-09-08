@@ -66,9 +66,12 @@ export function ProfileView({ session, onBack, installPrompt, installed, onInsta
     }, { onConflict: 'id' })
 
     if (profileError) {
-      setMessage(profileError.message.includes('column') || profileError.message.includes('profiles')
-        ? 'Profile fields are ready in code, but the Supabase schema needs to be updated to store them.'
-        : profileError.message)
+      const messageText = profileError.message.toLowerCase()
+      setMessage(
+        messageText.includes('column') && messageText.includes('does not exist')
+          ? 'Profile fields are ready in code, but the Supabase schema needs to be updated to store them.'
+          : profileError.message
+      )
       return
     }
 
