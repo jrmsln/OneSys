@@ -35,7 +35,6 @@ export function SongsView({
   const [message, setMessage] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
-  const [canEditCharts, setCanEditCharts] = useState(false);
   const [activeTab, setActiveTab] = useState<"library" | "edit">("library");
   const [editorSongId, setEditorSongId] = useState("");
   const [search, setSearch] = useState("");
@@ -52,15 +51,7 @@ export function SongsView({
   useEffect(() => {
     void load();
   }, []);
-  useEffect(() => {
-    Promise.all([
-      supabase.from("account_types").select("account_type").eq("user_id", session.user.id),
-      supabase.rpc("can_edit_committed_music"),
-    ]).then(([accountResult, committedResult]) => {
-      const leader = (accountResult.data || []).some((type) => ["admin", "music_director"].includes(type.account_type));
-      setCanEditCharts(leader || committedResult.data === true);
-    });
-  }, [session.user.id]);
+  const canEditCharts = true;
   async function addSong() {
     setMessage("");
     const normalizedArtist = artist || null;
