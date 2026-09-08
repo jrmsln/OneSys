@@ -47,12 +47,18 @@ function App() {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     const previousTouchAction = document.body.style.touchAction
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousHtmlTouchAction = document.documentElement.style.touchAction
     const shouldLock = notificationsOpen || mobileMenuOpen
     document.body.style.overflow = shouldLock ? 'hidden' : previousOverflow
     document.body.style.touchAction = shouldLock ? 'none' : previousTouchAction
+    document.documentElement.style.overflow = shouldLock ? 'hidden' : previousHtmlOverflow
+    document.documentElement.style.touchAction = shouldLock ? 'none' : previousHtmlTouchAction
     return () => {
       document.body.style.overflow = previousOverflow
       document.body.style.touchAction = previousTouchAction
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.documentElement.style.touchAction = previousHtmlTouchAction
     }
   }, [notificationsOpen, mobileMenuOpen])
 

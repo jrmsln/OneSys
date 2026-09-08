@@ -17,11 +17,17 @@ export function CalendarView({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     const previousTouchAction = document.body.style.touchAction
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousHtmlTouchAction = document.documentElement.style.touchAction
     document.body.style.overflow = selectedService ? 'hidden' : previousOverflow
     document.body.style.touchAction = selectedService ? 'none' : previousTouchAction
+    document.documentElement.style.overflow = selectedService ? 'hidden' : previousHtmlOverflow
+    document.documentElement.style.touchAction = selectedService ? 'none' : previousHtmlTouchAction
     return () => {
       document.body.style.overflow = previousOverflow
       document.body.style.touchAction = previousTouchAction
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.documentElement.style.touchAction = previousHtmlTouchAction
     }
   }, [selectedService])
   useEffect(() => { supabase.from('services').select('id, title, service_date, start_time, status, notes, playlist_url').is('archived_at', null).order('service_date').then(({ data }) => { setServices((data as Service[]) || []); setLoading(false) }) }, [])

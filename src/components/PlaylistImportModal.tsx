@@ -11,11 +11,17 @@ export function PlaylistImportModal({ onClose, onImported }: { onClose: () => vo
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     const previousTouchAction = document.body.style.touchAction
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousHtmlTouchAction = document.documentElement.style.touchAction
     document.body.style.overflow = 'hidden'
     document.body.style.touchAction = 'none'
+    document.documentElement.style.overflow = 'hidden'
+    document.documentElement.style.touchAction = 'none'
     return () => {
       document.body.style.overflow = previousOverflow
       document.body.style.touchAction = previousTouchAction
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.documentElement.style.touchAction = previousHtmlTouchAction
     }
   }, [])
 
