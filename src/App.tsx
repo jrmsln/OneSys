@@ -45,6 +45,18 @@ function App() {
   }
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+    const shouldLock = notificationsOpen || mobileMenuOpen
+    document.body.style.overflow = shouldLock ? 'hidden' : previousOverflow
+    document.body.style.touchAction = shouldLock ? 'none' : previousTouchAction
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [notificationsOpen, mobileMenuOpen])
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setAuthLoading(false)

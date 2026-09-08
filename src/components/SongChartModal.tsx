@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { SONG_KEYS, toNashvilleNumbers, transposeChords } from '../lib/songCharts'
 import type { ChartSection } from '../lib/songCharts'
@@ -6,6 +6,17 @@ import type { ChartSection } from '../lib/songCharts'
 interface SongChart { id: string; title: string; artist: string | null; source_url: string | null; lyrics: string | null; chords: string | null; song_key: string | null; notation_mode: 'chords' | 'nashville'; chart_sections: ChartSection[] | null }
 
 export function SongChartModal({ song, canEdit, onClose, onSaved }: { song: SongChart; canEdit: boolean; onClose: () => void; onSaved: (song: SongChart) => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [])
+
   const initialSections = song.chart_sections?.length ? song.chart_sections : [{ name: 'Main', lyrics: song.lyrics || '', chords: song.chords || '' }]
   const [sections, setSections] = useState<ChartSection[]>(initialSections)
   const [songKey, setSongKey] = useState(song.song_key || 'C')

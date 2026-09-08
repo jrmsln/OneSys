@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 interface DetectedSong { title: string; artist: string | null }
@@ -8,6 +8,17 @@ function songKey(title: string, artist: string | null) {
 }
 
 export function PlaylistImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [])
+
   const [url, setUrl] = useState('')
   const [songs, setSongs] = useState<DetectedSong[]>([])
   const [selected, setSelected] = useState<number[]>([])

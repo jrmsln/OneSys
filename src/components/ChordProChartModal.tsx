@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { parseChordProLine, transformChordPro, visibleChordProLines } from '../lib/chordPro'
 import { SONG_KEYS } from '../lib/songCharts'
@@ -13,6 +13,17 @@ function initialSource(song: SongChart) {
 }
 
 export function ChordProChartModal({ song, canEdit, onClose, onSaved }: { song: SongChart; canEdit: boolean; onClose: () => void; onSaved: (song: SongChart) => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [])
+
   const [source, setSource] = useState(initialSource(song))
   const [originalKey, setOriginalKey] = useState(song.song_key || 'C')
   const [viewKey, setViewKey] = useState(song.song_key || 'C')

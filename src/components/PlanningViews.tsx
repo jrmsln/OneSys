@@ -13,6 +13,17 @@ export function CalendarView({ onBack }: { onBack: () => void }) {
   const [lineup, setLineup] = useState<LineupMember[]>([])
   const [setlist, setSetlist] = useState<SetlistSong[]>([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+    document.body.style.overflow = selectedService ? 'hidden' : previousOverflow
+    document.body.style.touchAction = selectedService ? 'none' : previousTouchAction
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [selectedService])
   useEffect(() => { supabase.from('services').select('id, title, service_date, start_time, status, notes, playlist_url').is('archived_at', null).order('service_date').then(({ data }) => { setServices((data as Service[]) || []); setLoading(false) }) }, [])
   useEffect(() => {
     if (!selectedService) return

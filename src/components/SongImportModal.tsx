@@ -1,10 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { parseChordProLine } from '../lib/chordPro'
 import { supabase } from '../lib/supabase'
 
 interface ImportedSong { title: string; artist: string; key: string; capo: string; confidence: string; chordpro: string; sourceUrl: string }
 
 export function SongImportModal({ onClose, onImported }: { onClose: () => void; onImported: (chordpro: string, key: string) => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousTouchAction = document.body.style.touchAction
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.touchAction = previousTouchAction
+    }
+  }, [])
+
   const [url, setUrl] = useState('')
   const [preview, setPreview] = useState<ImportedSong | null>(null)
   const [loading, setLoading] = useState(false)
