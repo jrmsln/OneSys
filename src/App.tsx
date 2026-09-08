@@ -22,6 +22,7 @@ function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [username, setUsername] = useState('')
   const [authMessage, setAuthMessage] = useState('')
   const [activeView, setActiveView] = useState('Dashboard')
   const [showAll, setShowAll] = useState(false)
@@ -161,11 +162,31 @@ function App() {
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setAuthMessage('')
-    const result = authMode === 'sign-in'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : authMode === 'sign-up'
-        ? await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
-        : await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+
+    if (authMode === 'sign-in') {
+      const trimmedIdentifier = email.trim()
+      if (!trimmedIdentifier) {
+        setAuthMessage('Please enter your email or username.')
+        return
+      }
+
+      const result = trimmedIdentifier.includes('@')
+        ? await supabase.auth.signInWithPassword({ email: trimmedIdentifier, password })
+        : await (async () => {
+            const { data, error } = await supabase.rpc('get_profile_email_by_username', { username_input: trimmedIdentifier })
+            if (error) return { error }
+            const emailFromUsername = Array.isArray(data) ? data[0]?.email : data?.email
+            if (!emailFromUsername) return { error: { message: 'No account found for that username.' } }
+            return await supabase.auth.signInWithPassword({ email: emailFromUsername, password })
+          })()
+
+      if (result.error) setAuthMessage(result.error.message)
+      return
+    }
+
+    const result = authMode === 'sign-up'
+      ? await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, username } } })
+      : await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
     if (result.error) setAuthMessage(result.error.message)
     else if (authMode === 'sign-up') setAuthMessage('Check your email to confirm your account.')
     else if (authMode === 'forgot-password') setAuthMessage('Check your email for a password reset link.')
@@ -179,7 +200,7 @@ function App() {
 
   if (authLoading) return <div className="auth-loading">Loading Onesys...</div>
   if (authMode === 'reset-password') return <main className="auth-page"><section className="auth-card"><div className="brand-mark"><span>O</span><strong>onesys</strong></div><p className="eyebrow">SECURE YOUR ACCOUNT</p><h1>Set a new password.</h1><p className="auth-intro">Choose a new password for your Onesys account.</p><form onSubmit={async (event) => { event.preventDefault(); const { error } = await supabase.auth.updateUser({ password }); setAuthMessage(error ? error.message : 'Password updated. You can now sign in.'); if (!error) { await supabase.auth.signOut(); setAuthMode('sign-in') } }}><label>New password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required /></label>{authMessage && <p className="auth-message">{authMessage}</p>}<button className="auth-submit" type="submit">Update password <span>-&gt;</span></button></form></section><div className="auth-aside"><p className="eyebrow light">ONE PLACE FOR THE WHOLE TEAM</p><h2>Make every service feel prepared.</h2><p>Plan the setlist, confirm the team, and keep the details close.</p></div></main>
-  if (!session) return <main className="auth-page"><section className="auth-card"><div className="brand-mark"><span>O</span><strong>onesys</strong></div><p className="eyebrow">MUSIC TEAM WORKSPACE</p><h1>{authMode === 'sign-in' ? 'Welcome back.' : authMode === 'forgot-password' ? 'Reset your password.' : 'Create your workspace account.'}</h1><p className="auth-intro">{authMode === 'sign-in' ? 'Sign in to keep your team moving together.' : authMode === 'forgot-password' ? 'Enter your email and we will send you a secure reset link.' : 'Start organizing services, songs, and your team in one place.'}</p><form onSubmit={handleAuth}>{authMode === 'sign-up' && <label>Full name<input value={fullName} onChange={(event) => setFullName(event.target.value)} required /></label>}<label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>{authMode !== 'forgot-password' && <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required /></label>}{authMessage && <p className="auth-message">{authMessage}</p>}<button className="auth-submit" type="submit">{authMode === 'sign-in' ? 'Sign in' : authMode === 'forgot-password' ? 'Send reset link' : 'Create account'} <span>-&gt;</span></button></form>{authMode === 'sign-in' && <div className="oauth-buttons"><button onClick={() => void handleOAuth('google')}>Continue with Google</button></div>}{authMode === 'sign-in' && <button className="auth-switch" onClick={() => { setAuthMode('forgot-password'); setAuthMessage('') }}>Forgot password?</button>}<button className="auth-switch" onClick={() => { setAuthMode(authMode === 'sign-in' || authMode === 'forgot-password' ? 'sign-up' : 'sign-in'); setAuthMessage('') }}>{authMode === 'sign-in' || authMode === 'forgot-password' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}</button></section><div className="auth-aside"><p className="eyebrow light">ONE PLACE FOR THE WHOLE TEAM</p><h2>Make every service feel prepared.</h2><p>Plan the setlist, confirm the team, and keep the details close.</p><div className="auth-note">“The calm before Sunday starts here.”</div></div></main>
+  if (!session) return <main className="auth-page"><section className="auth-card"><div className="brand-mark"><span>O</span><strong>onesys</strong></div><p className="eyebrow">MUSIC TEAM WORKSPACE</p><h1>{authMode === 'sign-in' ? 'Welcome back.' : authMode === 'forgot-password' ? 'Reset your password.' : 'Create your workspace account.'}</h1><p className="auth-intro">{authMode === 'sign-in' ? 'Sign in to keep your team moving together.' : authMode === 'forgot-password' ? 'Enter your email and we will send you a secure reset link.' : 'Start organizing services, songs, and your team in one place.'}</p><form onSubmit={handleAuth}>{authMode === 'sign-up' && <><label>Full name<input value={fullName} onChange={(event) => setFullName(event.target.value)} required /></label><label>Username<input value={username} onChange={(event) => setUsername(event.target.value)} required /></label></>}<label>{authMode === 'sign-in' ? 'Email or username' : 'Email'}<input type={authMode === 'sign-in' ? 'text' : 'email'} value={email} onChange={(event) => setEmail(event.target.value)} required /></label>{authMode !== 'forgot-password' && <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required /></label>}{authMessage && <p className="auth-message">{authMessage}</p>}<button className="auth-submit" type="submit">{authMode === 'sign-in' ? 'Sign in' : authMode === 'forgot-password' ? 'Send reset link' : 'Create account'} <span>-&gt;</span></button></form>{authMode === 'sign-in' && <div className="oauth-buttons"><button onClick={() => void handleOAuth('google')}>Continue with Google</button></div>}{authMode === 'sign-in' && <button className="auth-switch" onClick={() => { setAuthMode('forgot-password'); setAuthMessage('') }}>Forgot password?</button>}<button className="auth-switch" onClick={() => { setAuthMode(authMode === 'sign-in' || authMode === 'forgot-password' ? 'sign-up' : 'sign-in'); setAuthMessage('') }}>{authMode === 'sign-in' || authMode === 'forgot-password' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}</button></section><div className="auth-aside"><p className="eyebrow light">ONE PLACE FOR THE WHOLE TEAM</p><h2>Make every service feel prepared.</h2><p>Plan the setlist, confirm the team, and keep the details close.</p><div className="auth-note">“The calm before Sunday starts here.”</div></div></main>
 
   return (
     <div className="app-shell">

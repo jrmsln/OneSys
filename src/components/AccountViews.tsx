@@ -9,19 +9,27 @@ export interface BeforeInstallPromptEvent extends Event {
 
 export function ProfileView({ session, onBack, installPrompt, installed, onInstall }: { session: Session; onBack: () => void; installPrompt: BeforeInstallPromptEvent | null; installed: boolean; onInstall: () => void }) {
   const [name, setName] = useState(session.user.user_metadata.full_name || '')
+  const [username, setUsername] = useState('')
   const [phone, setPhone] = useState('')
   const [title, setTitle] = useState('')
   const [bio, setBio] = useState('')
+  const [address, setAddress] = useState('')
+  const [facebookUrl, setFacebookUrl] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
     async function loadProfile() {
-      const { data } = await supabase.from('profiles').select('full_name, phone, title, bio').eq('id', session.user.id).maybeSingle()
+      const { data } = await supabase.from('profiles').select('full_name, username, phone, title, bio, address, facebook_url, avatar_url').eq('id', session.user.id).maybeSingle()
       if (data) {
         setName(data.full_name || session.user.user_metadata.full_name || '')
+        setUsername(data.username || '')
         setPhone(data.phone || '')
         setTitle(data.title || '')
         setBio(data.bio || '')
+        setAddress(data.address || '')
+        setFacebookUrl(data.facebook_url || '')
+        setAvatarUrl(data.avatar_url || '')
       }
     }
 
@@ -30,9 +38,13 @@ export function ProfileView({ session, onBack, installPrompt, installed, onInsta
 
   async function save() {
     const trimmedName = name.trim()
+    const trimmedUsername = username.trim()
     const trimmedPhone = phone.trim()
     const trimmedTitle = title.trim()
     const trimmedBio = bio.trim()
+    const trimmedAddress = address.trim()
+    const trimmedFacebookUrl = facebookUrl.trim()
+    const trimmedAvatarUrl = avatarUrl.trim()
 
     const { error: authError } = await supabase.auth.updateUser({ data: { full_name: trimmedName } })
     if (authError) {
@@ -42,10 +54,14 @@ export function ProfileView({ session, onBack, installPrompt, installed, onInsta
 
     const { error: profileError } = await supabase.from('profiles').upsert({
       id: session.user.id,
+      username: trimmedUsername || null,
       full_name: trimmedName || session.user.email?.split('@')[0] || 'Team member',
       phone: trimmedPhone || null,
       title: trimmedTitle || null,
       bio: trimmedBio || null,
+      address: trimmedAddress || null,
+      facebook_url: trimmedFacebookUrl || null,
+      avatar_url: trimmedAvatarUrl || null,
     }, { onConflict: 'id' })
 
     if (profileError) {
@@ -61,7 +77,7 @@ export function ProfileView({ session, onBack, installPrompt, installed, onInsta
     if (!installPrompt) { setMessage(installed ? 'Onesys is already installed.' : 'Use your browser menu and choose Add to Home screen.'); return }
     void onInstall()
   }
-  return <section className="services-view"><button className="back-link" onClick={onBack}>&lt;- Dashboard</button><div className="services-heading"><div><p className="eyebrow">YOUR ACCOUNT</p><h1>Profile</h1><p>Keep your workspace identity up to date.</p></div></div><div className="panel profile-form"><p className="eyebrow">ACCOUNT DETAILS</p><h2>{session.user.email}</h2><label>Full name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Phone number<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(optional)" /></label><label>Team title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="(optional)" /></label><label>Bio<textarea value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Tell the team a bit about yourself." /></label>{message && <p className="form-error">{message}</p>}<button className="primary-button" onClick={() => void save()}>Save profile</button><div className="profile-install"><p className="eyebrow">APP INSTALLATION</p><p>Open Onesys from your home screen without the browser bar.</p><button className="outline-button" onClick={installApp}>{installed ? 'App installed' : 'Install Onesys'}</button></div></div></section>
+  return <section className="services-view"><button className="back-link" onClick={onBack}>&lt;- Dashboard</button><div className="services-heading"><div><p className="eyebrow">YOUR ACCOUNT</p><h1>Profile</h1><p>Keep your workspace identity up to date.</p></div></div><div className="panel profile-form"><p className="eyebrow">ACCOUNT DETAILS</p><h2>{session.user.email}</h2><label>Username<input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="(optional)" /></label><label>Full name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Profile picture URL<input value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." /></label><label>Phone number<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(optional)" /></label><label>Address<input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="(optional)" /></label><label>Facebook link<input value={facebookUrl} onChange={(event) => setFacebookUrl(event.target.value)} placeholder="https://facebook.com/yourname" /></label><label>Team title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="(optional)" /></label><label>Bio<textarea value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Tell the team a bit about yourself." /></label>{message && <p className="form-error">{message}</p>}<button className="primary-button" onClick={() => void save()}>Save profile</button><div className="profile-install"><p className="eyebrow">APP INSTALLATION</p><p>Open Onesys from your home screen without the browser bar.</p><button className="outline-button" onClick={installApp}>{installed ? 'App installed' : 'Install Onesys'}</button></div></div></section>
 }
 
 export function ConflictsView({ session, onBack }: { session: Session; onBack: () => void }) {

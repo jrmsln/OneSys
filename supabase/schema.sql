@@ -6,10 +6,14 @@ create type public.assignment_status as enum ('pending', 'confirmed', 'declined'
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  username text unique,
   full_name text not null,
   phone text,
   title text,
   bio text,
+  address text,
+  facebook_url text,
   avatar_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -140,8 +144,13 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)));
+  insert into public.profiles (id, email, username, full_name)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'username', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1))
+  );
   return new;
 end;
 $$;
@@ -149,3 +158,19 @@ $$;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+create or replace function public.get_profile_email_by_username(username_input text)
+returns table (email text)
+language sql
+security definer
+set search_path = public
+as $$
+  select au.email
+  from public.profiles p
+  join auth.users au on au.id = p.id
+  where lower(p.username) = lower(username_input)
+  limit 1;
+$$;
+
+grant execute on function public.get_profile_email_by_username(text) to anon;
+grant execute on function public.get_profile_email_by_username(text) to authenticated;
