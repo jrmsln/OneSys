@@ -7,7 +7,7 @@ interface Availability { id: string; available_date: string; is_available: boole
 interface LineupMember { id: string; name: string; role: string }
 interface SetlistSong { id: string; title: string; artist: string | null; position: number }
 
-export function CalendarView({ onBack }: { onBack: () => void }) {
+export function CalendarView({ session, onBack }: { session: Session; onBack: () => void }) {
   const [services, setServices] = useState<Service[]>([])
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [lineup, setLineup] = useState<LineupMember[]>([])
@@ -30,7 +30,23 @@ export function CalendarView({ onBack }: { onBack: () => void }) {
       document.documentElement.style.touchAction = previousHtmlTouchAction
     }
   }, [selectedService])
-  useEffect(() => { supabase.from('services').select('id, title, service_date, start_time, status, notes, playlist_url').is('archived_at', null).order('service_date').then(({ data }) => { setServices((data as Service[]) || []); setLoading(false) }) }, [])
+  useEffect(() => {
+    async function loadAssignedServices() {
+      setLoading(true)
+      const { data: assignmentData } = await supabase.from('service_assignments').select('service_id').eq('user_id', session.user.id)
+      const serviceIds = [...new Set((assignmentData || []).map((row) => row.service_id))]
+      if (!serviceIds.length) {
+        setServices([])
+        setLoading(false)
+        return
+      }
+      const { data } = await supabase.from('services').select('id, title, service_date, start_time, status, notes, playlist_url').in('id', serviceIds).is('archived_at', null).order('service_date')
+      setServices((data as Service[]) || [])
+      setLoading(false)
+    }
+
+    void loadAssignedServices()
+  }, [session.user.id])
   useEffect(() => {
     if (!selectedService) return
     Promise.all([

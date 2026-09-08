@@ -9,13 +9,59 @@ export interface BeforeInstallPromptEvent extends Event {
 
 export function ProfileView({ session, onBack, installPrompt, installed, onInstall }: { session: Session; onBack: () => void; installPrompt: BeforeInstallPromptEvent | null; installed: boolean; onInstall: () => void }) {
   const [name, setName] = useState(session.user.user_metadata.full_name || '')
+  const [phone, setPhone] = useState('')
+  const [title, setTitle] = useState('')
+  const [bio, setBio] = useState('')
   const [message, setMessage] = useState('')
-  async function save() { const { error } = await supabase.auth.updateUser({ data: { full_name: name } }); setMessage(error ? error.message : 'Profile updated.') }
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data } = await supabase.from('profiles').select('full_name, phone, title, bio').eq('id', session.user.id).maybeSingle()
+      if (data) {
+        setName(data.full_name || session.user.user_metadata.full_name || '')
+        setPhone(data.phone || '')
+        setTitle(data.title || '')
+        setBio(data.bio || '')
+      }
+    }
+
+    void loadProfile()
+  }, [session.user.id, session.user.user_metadata.full_name])
+
+  async function save() {
+    const trimmedName = name.trim()
+    const trimmedPhone = phone.trim()
+    const trimmedTitle = title.trim()
+    const trimmedBio = bio.trim()
+
+    const { error: authError } = await supabase.auth.updateUser({ data: { full_name: trimmedName } })
+    if (authError) {
+      setMessage(authError.message)
+      return
+    }
+
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: session.user.id,
+      full_name: trimmedName || session.user.email?.split('@')[0] || 'Team member',
+      phone: trimmedPhone || null,
+      title: trimmedTitle || null,
+      bio: trimmedBio || null,
+    }, { onConflict: 'id' })
+
+    if (profileError) {
+      setMessage(profileError.message.includes('column') || profileError.message.includes('profiles')
+        ? 'Profile fields are ready in code, but the Supabase schema needs to be updated to store them.'
+        : profileError.message)
+      return
+    }
+
+    setMessage('Profile updated.')
+  }
   function installApp() {
     if (!installPrompt) { setMessage(installed ? 'Onesys is already installed.' : 'Use your browser menu and choose Add to Home screen.'); return }
     void onInstall()
   }
-  return <section className="services-view"><button className="back-link" onClick={onBack}>&lt;- Dashboard</button><div className="services-heading"><div><p className="eyebrow">YOUR ACCOUNT</p><h1>Profile</h1><p>Keep your workspace identity up to date.</p></div></div><div className="panel profile-form"><p className="eyebrow">ACCOUNT DETAILS</p><h2>{session.user.email}</h2><label>Full name<input value={name} onChange={(event) => setName(event.target.value)} /></label>{message && <p className="form-error">{message}</p>}<button className="primary-button" onClick={() => void save()}>Save profile</button><div className="profile-install"><p className="eyebrow">APP INSTALLATION</p><p>Open Onesys from your home screen without the browser bar.</p><button className="outline-button" onClick={installApp}>{installed ? 'App installed' : 'Install Onesys'}</button></div></div></section>
+  return <section className="services-view"><button className="back-link" onClick={onBack}>&lt;- Dashboard</button><div className="services-heading"><div><p className="eyebrow">YOUR ACCOUNT</p><h1>Profile</h1><p>Keep your workspace identity up to date.</p></div></div><div className="panel profile-form"><p className="eyebrow">ACCOUNT DETAILS</p><h2>{session.user.email}</h2><label>Full name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Phone number<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(optional)" /></label><label>Team title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="(optional)" /></label><label>Bio<textarea value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Tell the team a bit about yourself." /></label>{message && <p className="form-error">{message}</p>}<button className="primary-button" onClick={() => void save()}>Save profile</button><div className="profile-install"><p className="eyebrow">APP INSTALLATION</p><p>Open Onesys from your home screen without the browser bar.</p><button className="outline-button" onClick={installApp}>{installed ? 'App installed' : 'Install Onesys'}</button></div></div></section>
 }
 
 export function ConflictsView({ session, onBack }: { session: Session; onBack: () => void }) {
