@@ -17,6 +17,10 @@ alter table public.profiles
 -- create unique index if not exists profiles_username_unique
 -- on public.profiles (username);
 
+create policy "Users can insert their profile" on public.profiles
+for insert to authenticated
+with check (auth.uid() = id);
+
 create or replace function public.get_profile_email_by_username(username_input text)
 returns table (email text)
 language sql

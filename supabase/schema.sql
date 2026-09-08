@@ -120,6 +120,7 @@ grant select, insert, update on public.songs to authenticated;
 grant select, insert, update, delete on public.setlists, public.setlist_songs to authenticated;
 
 create policy "Users can view profiles" on public.profiles for select to authenticated using (true);
+create policy "Users can insert their profile" on public.profiles for insert to authenticated with check (auth.uid() = id);
 create policy "Users can update their profile" on public.profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 create policy "Users can view account types" on public.account_types for select to authenticated using (true);
 create policy "Users can view music roles" on public.music_roles for select to authenticated using (true);
